@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}User Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- User Summary Card -->
+    <div class="bg-white shadow-md rounded-lg p-6 col-span-1">
+        <div class="flex items-center space-x-4 mb-4">
+            <i class="fas fa-leaf text-green-500 text-4xl"></i>
+            <div>
+                <h2 class="text-2xl font-bold">{{ user.get_full_name|default:user.username }}</h2>
+                <p class="text-gray-600">Eco Warrior</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+                <i class="fas fa-trophy text-yellow-500 text-3xl block mb-2"></i>
+                <p class="font-bold">{{ user_profile.reward_points }}</p>
+                <p class="text-sm text-gray-600">Reward Points</p>
+            </div>
+            <div class="text-center">
+                <i class="fas fa-car text-blue-500 text-3xl block mb-2"></i>
+                <p class="font-bold">{{ user_profile.total_co2_saved|floatformat:1 }} kg</p>
+                <p class="text-sm text-gray-600">CO2 Saved</p>
+            </div>
+        </div>
+        <a href="{% url 'upload_ticket' %}" class="w-full mt-4 bg-green-500 text-white py-2 rounded hover:bg-green-600 transition inline-flex items-center justify-center">
+            <i class="fas fa-upload mr-2"></i> Upload New Ticket
+        </a>
+    </div>
+
+    <!-- Transport History -->
+    <div class="bg-white shadow-md rounded-lg p-6 col-span-2">
+        <h3 class="text-xl font-bold mb-4">Transport History</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3 text-left">Date</th>
+                        <th class="p-3 text-left">Transport Type</th>
+                        <th class="p-3 text-right">Distance (km)</th>
+                        <th class="p-3 text-right">CO2 Saved (kg)</th>
+                        <th class="p-3 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in transport_tickets %}
+                    <tr class="border-b {% if not ticket.verified %}bg-yellow-50{% endif %}">
+                        <td class="p-3">{{ ticket.created_at|date:"Y-m-d" }}</td>
+                        <td class="p-3">{{ ticket.get_transport_type_display }}</td>
+                        <td class="p-3 text-right">{{ ticket.distance_traveled }}</td>
+                        <td class="p-3 text-right">{{ ticket.co2_saved|floatformat:2 }}</td>
+                        <td class="p-3 text-right">
+                            {% if ticket.verified %}
+                            <span class="text-green-600 font-bold">Verified</span>
+                            {% else %}
+                            <span class="text-yellow-600">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center p-4 text-gray-500">
+                            No transport tickets uploaded yet
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Voucher Section -->
+<div class="mt-6 bg-white shadow-md rounded-lg p-6">
+    <h3 class="text-xl font-bold mb-4">Available Vouchers</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for voucher in available_vouchers %}
+        <div class="border rounded-lg p-4 hover:shadow-lg transition">
+            <h4 class="font-bold text-lg mb-2">{{ voucher.name }}</h4>
+            <p class="text-gray-600 mb-2">{{ voucher.description }}</p>
+            <div class="flex justify-between items-center">
+                <span class="text-green-600 font-bold">
+                    {{ voucher.discount_percentage }}% Off
+                </span>
+                <form method="post" action="{% url 'redeem_voucher' voucher.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="
+                        bg-blue-500 text-white px-3 py-1 rounded 
+                        {% if user_profile.reward_points < voucher.points_required %}opacity-50 cursor-not-allowed{% endif %}"
+                        {% if user_profile.reward_points < voucher.points_required %}disabled{% endif %}>
+                        Redeem ({{ voucher.points_required }} pts)
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <p class="col-span-full text-center text-gray-500">
+            No vouchers available at the moment
+        </p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
